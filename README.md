@@ -1,2 +1,5 @@
 myCode
 ======
+<?php
+  echo 'hello';
+?>
