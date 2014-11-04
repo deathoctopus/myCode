@@ -1,0 +1,38 @@
+   30天没有搜索量的型号
+    select *
+  from (
+  select partno, inputdate, rowId = ROW_NUMBER() over(partition by partno order by inputdate)
+  from [test].[dbo].myTable2) as t1 inner join 
+  (
+  select partno, inputdate, rowId = ROW_NUMBER() over(partition by partno order by inputdate)
+  from [test].[dbo].myTable2) as t2 on t1.partno =t2.partno and t1.rowId +1=t2.rowId 
+  where datediff(day,t1.inputdate,t2.inputdate )>2
+  
+  
+#30天连续为零的型号的总数排序
+  select C.F_Partno, sum(C.F_count)as myCount from(
+	  select A.F_Partno, B.F_count
+	  from R_Temp_Over30DayNoSearch A
+	  inner join T_Temp_30DayCount B
+	  on A.F_Partno = B.F_partno)C
+  group by C.F_partno
+  order by myCount desc
+
+
+#一个型号的走势
+  select B.F_partno, A.F_date,  
+(
+	CASE  
+	WHEN (B.F_count is null )
+	then 0
+	WHEN (B.F_count is not null )
+	then B.F_count
+	end
+)	as myCount
+from T_Temp_RecentDate A
+left join 
+	(
+	select * from T_Temp_30DayCount
+	where F_partno = 'AE'
+	) B
+on A.F_date = B.F_inputdate
