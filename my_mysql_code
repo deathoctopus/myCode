@@ -1,0 +1,247 @@
+大于十万: 0
+SELECT count(*) FROM `R_A_Recent30DaySearchCount`
+WHERE F_Count > 100000
+
+五万-十万: 0
+SELECT count(*) FROM `R_A_Recent30DaySearchCount`
+WHERE F_Count between 50000 and 100000
+
+一万-五万: 1
+SELECT count(*) FROM `R_A_Recent30DaySearchCount`
+WHERE F_Count between 10000 and 49999
+
+五千-一万: 1
+SELECT count(*) FROM `R_A_Recent30DaySearchCount`
+WHERE F_Count between 5000 and 9999
+
+三千-五千: 4
+SELECT count(*) FROM `R_A_Recent30DaySearchCount`
+WHERE F_Count between 3000 and 4999
+
+一千-三千: 83
+SELECT count(*) FROM `R_A_Recent30DaySearchCount`
+WHERE F_Count between 1000 and 2999
+
+五百-一千: 204
+SELECT count(*) FROM `R_A_Recent30DaySearchCount`
+WHERE F_Count between 500 and 999
+
+小于五百: 2043276
+SELECT count(*) FROM `R_A_Recent30DaySearchCount`
+WHERE F_Count < 500
+
+未搜索: 44582552
+
+大于十万: 0
+SELECT count(*) FROM `R_A_AllSearchCount`
+WHERE F_Count > 100000
+
+五万-十万: 0
+SELECT count(*) FROM `R_A_AllSearchCount`
+WHERE F_Count between 50000 and 100000
+
+一万-五万: 3
+SELECT count(*) FROM `R_A_AllSearchCount`
+WHERE F_Count between 10000 and 49999
+
+五千-一万: 12
+SELECT count(*) FROM `R_A_AllSearchCount`
+WHERE F_Count between 5000 and 9999
+
+三千-五千: 43
+SELECT count(*) FROM `R_A_AllSearchCount`
+WHERE F_Count between 3000 and 4999
+
+一千-三千: 263
+SELECT count(*) FROM `R_A_AllSearchCount`
+WHERE F_Count between 1000 and 2999
+
+五百-一千: 967
+SELECT count(*) FROM `R_A_AllSearchCount`
+WHERE F_Count between 500 and 999
+
+小于五百: 2670514
+SELECT count(*) FROM `R_A_AllSearchCount`
+WHERE F_Count < 500
+
+未搜索: 43954319
+
+#改版之后的搜索数量
+CREATE TABLE `R_A_AllSearchCount` (
+  `F_id` int(11) NOT NULL  AUTO_INCREMENT,
+  `F_partno` varchar(50) DEFAULT NULL,
+  `F_Count` int(11) DEFAULT NULL,
+  PRIMARY KEY (`F_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 
+
+#改版之后的每个型号每天搜索数量
+CREATE TABLE `R_A_AllSearchDayCount` (
+  `F_id` int(11) NOT NULL  AUTO_INCREMENT,
+  `F_partno` varchar(50) DEFAULT NULL,
+  `F_inputdate` date DEFAULT NULL,
+  `F_Count` int(11) DEFAULT NULL,
+  PRIMARY KEY (`F_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 
+
+#改版之后的每个型号每周搜索数量
+CREATE TABLE `R_A_AllSearchWeekCount` (
+  `F_id` int(11) NOT NULL  AUTO_INCREMENT,
+  `F_partno` varchar(50) DEFAULT NULL,
+  `F_Week` int(3) DEFAULT NULL,
+  `F_Count` int(11) DEFAULT NULL,
+  PRIMARY KEY (`F_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 
+
+#总周数表
+CREATE TABLE `R_A_Week` (
+  `F_id` int(11) NOT NULL  AUTO_INCREMENT,
+  `F_Week` int(3) DEFAULT NULL,
+  PRIMARY KEY (`F_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 
+
+insert into R_A_Week(F_Week)
+SELECT F_Week FROM `R_A_AllSearchWeekCount` 
+group by F_Week
+
+#连续30天小于0
+CREATE TABLE `R_A_AllSearchLessCount` (
+  `F_id` int(11) NOT NULL  AUTO_INCREMENT,
+  `F_partno` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`F_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 
+
+
+#选择型号
+insert into R_A_AllSearch (F_Partno, F_Inputdate)
+select partno, inputdate
+from log_src
+where inputdate between '2014-07-01 00:00:00' and '2014-10-30 23:59:59'
+
+#按型号日期整理
+insert into R_A_AllSearchDayCount(F_Partno, F_Inputdate, F_Count)
+select F_Partno, F_Inputdate, count(*) as myCount
+from R_A_AllSearch
+group by F_Partno, F_Inputdate
+
+#查找第几周
+insert into F_Week
+select WEEK(F_inputdate)
+from R_A_AllSearchDayCount
+
+update R_A_AllSearchDayCount
+set F_Week = WEEK(F_inputdate)
+
+week 30 - 43
+#计算每周搜索量
+insert into R_A_AllSearchWeekCount(F_Partno, F_Week, F_Count)
+select F_Partno, F_Week, sum(F_Count)
+from R_A_AllSearchDayCount
+group by F_Week, F_Partno
+
+#每周搜索量不为0的型号数量: 结果：24497
+#型号：10CTQ150, AD5752AREZ, BC847C, INA148UA, LP2951CN
+#			  HEDS-5540, BAV99, XCF04SVOG20C, M30627FHPGP, TPS2051CDBVR
+SELECT * FROM(
+	SELECT *, sum(F_Count) as sumCount, count(*) AS myCount
+	FROM R_A_AllSearchWeekCount
+	GROUP BY F_partno
+	) A 
+WHERE A.myCount = 14
+order by sumCount desc
+
+
+#生成总日期表
+DELIMITER $$
+DROP PROCEDURE IF EXISTS createDateTable$$
+CREATE PROCEDURE createDateTable()
+BEGIN
+	
+	declare i int(11);#id
+	declare imax int(11);#id
+	declare nowDate date;
+	
+	#临时表，型号值
+		DROP TABLE IF EXISTS DateTable;
+		CREATE TABLE `DateTable` (
+		`id` int(11) not null auto_increment,
+		`F_inputdate` date NOT NULL,
+		PRIMARY KEY (`id`)
+		) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT = 1;
+		
+		set i = 0;
+		set imax = TO_DAYS(CURDATE()) - TO_DAYS('2014-07-01');
+		
+		WHILE i<120 DO
+				
+				insert into DateTable(F_inputdate)
+				values('2014-07-01' + interval i day);
+					
+				set i = i+1;
+		END WHILE;
+		
+END $$
+DELIMITER ;
+
+
+#一个型号的每日查询记录
+select B.F_partno, A.F_inputdate,  
+(
+	CASE  
+	WHEN (B.F_count is null )
+	then 0
+	WHEN (B.F_count is not null )
+	then B.F_count
+	end
+)	as myCount
+from DateTable A
+left join 
+	(
+	select * from R_A_AllSearchDayCount
+	where F_partno = '10CTQ150'
+	) B
+on A.F_inputdate = B.F_inputdate
+
+
+
+SELECT A.f_partno, InputTime, count(*) AS thisCount
+FROM T_ChipInfo A INNER JOIN week_top_search_temp B ON A.f_partno = B.partno
+where A.f_partno = 'UHE1H220MDD1CC'
+GROUP BY A.f_partno;
+
+
+SELECT A.AA,
+(
+	CASE  
+	WHEN (B.myCount is null )
+	then 0
+	WHEN (B.myCount is not null )
+	then B.myCount
+	end
+)	as myCount2
+FROM test2 A
+LEFT JOIN 
+	(
+		SELECT C.AA, count(*) as myCount FROM test C
+		INNER JOIN test2 D
+		ON C.AA = D.AA
+		GROUP BY C.AA
+	) B
+ON A.AA = B.AA
+
+
+select B.F_partno, A.F_inputdate,  
+(
+	CASE  
+	WHEN (B.F_count is null )
+	then 0
+	WHEN (B.F_count is not null )
+	then B.F_count
+	end
+)	as myCount
+from DateTable A
+left join 
+	(
+	select * from R_A_AllSearchDayCount
+	where F_partno = 'NE555'
+	) B
+on A.F_inputdate = B.F_inputdate
