@@ -41,3 +41,44 @@ function substr_for_utf8($sourcestr, $cutlength) {
 	*/
 	return $returnstr;
 }
+
+/**
+ * @author LI.h
+ * @todo 正则判断是否是中文
+ * @param string $str input value
+ * @return boolean
+ */
+function checkComponentNameDescription($str) {
+	/*
+		$regx = '/^([\x{0000}-\x{007F}]|[\x{3000}-\x{303F}]|[\x{4E00}-\x{9FFF}]|[\x{FF00}-\x{FFEF}])*$/iu'; // 0-127的字符，中日韩通用标点，中文，中文全角标点
+	$regxOther = '/\\\\|\-\-|%|,|“|‘|\'|"|\?|\[|#|\]|\*|\$|\{|\}|\r|\n|【|】|●|★|▲|◆|▼|■|『|』|〓/i'; // 不允许的特殊字符
+
+	if(!preg_match($regx, $str)){
+	return false;//不属于允许的范围内
+	}else if(preg_match($regxOther, $str)){
+	return false;//不允许的特殊符号
+	}else{
+	return true;
+	}
+	*/
+	$regx1 = '/[\x{0000}-\x{007F}]/u';
+	$regx2 = '/[\x{3000}-\x{303F}]/u';
+	$regx3 = '/[\x{4E00}-\x{9FFF}]/u';
+	$regx4 = '/[\x{FF00}-\x{FFEF}]/u';
+	$regxOther = '/\\\\|\-\-|%|,|“|‘|\'|"|\?|\[|#|\]|\*|\$|\{|\}|\r|\n|【|】|●|★|▲|◆|▼|■|『|』|〓/i'; // 不允许的特殊字符
+
+	if(preg_match($regxOther, $str)){
+		return false;//不允许的特殊符号
+	}else{
+		//替换所有正确的字符为空
+		$str = preg_replace($regx1, '', $str);
+		$str = preg_replace($regx2, '', $str);
+		$str = preg_replace($regx3, '', $str);
+		$str = preg_replace($regx4, '', $str);
+		if($str != ''){
+			return false;
+		}else{
+			return true;
+		}
+	}
+}
