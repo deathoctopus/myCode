@@ -1,4 +1,4 @@
-   30天没有搜索量的型号
+   连续30天没有搜索量的型号
     select *
   from (
   select partno, inputdate, rowId = ROW_NUMBER() over(partition by partno order by inputdate)
