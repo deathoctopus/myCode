@@ -36,3 +36,35 @@ left join
 	where F_partno = 'AE'
 	) B
 on A.F_date = B.F_inputdate
+
+#建立分区方法
+S1：建立文件组，建立一个单独的文件组即可，分区数据都指向这个文件组
+文件组名为 FileGroup
+
+S2：建立分区方法
+CREATE PARTITION FUNCTION partition_function_name ( input_parameter_type )
+AS RANGE [ LEFT | RIGHT ] 
+FOR VALUES ( [ boundary_value [ ,...n ] ] ) 
+[ ; ]
+#实例
+CREATE PARTITION FUNCTION partitionFunction ( date )
+AS RANGE RIGHT
+FOR VALUES ( '2014-01-01', '2014-02-01' ) 
+
+S3：建立分区结构
+CREATE PARTITION SCHEME partition_scheme_name
+AS PARTITION partition_function_name
+[ ALL ] TO ( { file_group_name | [ PRIMARY ] } [ ,...n ] )
+[ ; ]
+#实例
+CREATE PARTITION SCHEME partitionScheme
+AS PARTITION partitionFunction
+ALL TO ( FileGroup )
+
+S4：建立分区表
+CREATE TABLE ParititionTable
+{
+	id, int
+	orderId, int
+	inputDate, date
+}ON partitionScheme(inputDate)#分区结构名（列名）
