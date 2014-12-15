@@ -1,0 +1,253 @@
+<?php
+/*~ verificationCode.class.php
+.-------------------------------------------------------------------------------.
+|  Software: verification Code - ICNet public function class             		|
+|      Site: http://www.ic.net.cn         										|
+| ------------------------------------------------------------------------------|
+|   Authors: Guo.F (guofeng@ic.net.cn) 								        	|
+|   Founder: ICNet Development Team (original founder)                      	|
+| 	Copyright (c) 2012-2014, ICNet All Rights Reserved.            				|
+'-------------------------------------------------------------------------------'
+*/
+class IC_RndCode {
+	
+	public $strFontName = '../media/fonts/BRLNSB.TTF'; // stxingka.ttf, BRLNSB.TTF, MSYHBD.TTF, ariblk.ttf
+	public $intImgwidth = 120; // 图像宽度
+	public $intImgHeight = 50; // 图像高度
+	public $args_char = array();
+	
+	function __construct() {}
+	
+	//颜色列表
+	private $args_colourList = array(
+			array('0xFF', '0xFF', '0xFF'),//白
+			array('0x00', '0x00', '0x00'),//黑
+			array('0xFF', '0x00', '0x00'),//红
+			array('0xDD', '0xDD', '0x00'),//黄
+			array('0x44', '0x44', '0xFF'),//蓝
+			array('0x00', '0xFF', '0x00'),//绿
+			array('0xAA', '0x00', '0xFF'),//紫
+			array('0xFF', '0xAA', '0x00'),//橙
+			array('0xAA', '0xAA', '0xAA'),//灰
+			);
+	
+	/**
+	 * @todo 获取验证码图片
+	 * @author Guo.F
+	 * @param int $intMode 验证码类型
+	 * @param string $strCodeName 验证码 Session Name
+	 */
+	public function show($intMode, $strCodeName) {
+		$strCode = self::getCode($intMode);
+		//createSession($strCodeName, $strCode);//临时注释
+		self::createImgCode($strCode);
+	}
+	
+	/**
+	 * @todo 生成验证码
+	 * @author Guo.F
+	 * @param int $intMode 1-随机数字, 2-英文(小写), 3-英文(大写), 4-英文(大小写), 5-英文(大写)+数字, 6-英文(小写)+数字, 7-中文; 其他均为英文(大小写)+数字
+	 * @param int $intLength 验证码字符长度: 英文4位, 中文3位.
+	 */
+	private function getCode($intMode=0, $intLength=4) {
+		if ( $intMode == 7 ) $intLength = 3;
+		switch ($intMode) {
+			case '1':
+				$strCode = '1234567890';
+				break;
+			case '2':
+				$strCode = 'abcdefghijklmnopqrstuvwxyz';
+				break;
+			case '3':
+				$strCode = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+				break;
+			case '4':
+				$strCode = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+				break;
+			case '5':
+				$strCode = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789';
+				break;
+			case '6':
+				$strCode = 'abcdefghijklmnopqrstuvwxyz1234567890';
+				break;
+			case '7':
+				$strCode = '第三方支付服务免费为您的交易保驾护航';
+				break;
+			default :
+				$strCode = 'ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+				break;
+		}
+	
+		$strCode_this = '';
+		if ( $intMode == 7 ) { // 汉字
+			$args_chn = array();
+			for ($i=0; $i<strlen($strCode); $i+=3) { //汉字UTF-8编码下是3个字节
+				$args_chn[] = $strCode[$i].$strCode[$i+1].$strCode[$i+2];
+			}
+	
+			$intRandNum = rand(0, count($args_chn)-($intLength+1));
+			if ($intRandNum%2) $intRandNum+=1; //保持是偶数
+	
+			for ($i=0; $i<$intLength; $i++) {
+				$strCode_this .= $args_chn[$intRandNum+$i].',';
+			}
+		} else { // 英文&数字
+			for($i=0; $i<$intLength; $i++) {
+				$intThisCodeLength = strlen($strCode) - 1;
+				$intRandNum = mt_rand(0, $intThisCodeLength);
+				$strCode_this .= $strCode[$intRandNum].',';
+			}
+		}
+		
+		$strCode_this = rtrim($strCode_this, ',');
+		$this->args_char = explode(',', $strCode_this);
+		$strCode_this = str_replace(',', '', $strCode_this);
+		
+		return $strCode_this;
+	}
+	
+	/**
+	 * @todo 生成验证码图片
+	 * @author Guo.F
+	 * @param string $strCode 验证码
+	 */
+	private function createImgCode($strCode) {
+		$intLength = count($this->args_char); // 验证码位数
+		$im = imagecreatetruecolor($this->intImgwidth, $this->intImgHeight); // 创建画布
+		$intFontSize = 28; // rand(28, 32); // 字号
+		
+		$buttum_c = ImageColorAllocate($im, 255, 255, 255); // 填充图片背景为白色
+		imagefill ( $im, 0, 0, $buttum_c );
+		
+		// 为图像分配一些颜色
+		$white = imagecolorallocate($im, 234, 185, 95);
+		
+		// 在图片上画椭圆弧,指定下坐标点
+		imagearc($im, 150, 8, 20, 20, 75, 170, $white);
+		imagearc($im, 180, 7,50, 30, 75, 175, $white);
+		
+		// 在图片上画一条线段,指定下坐标点
+		imageline($im, 20, 20, 180, 30, $white);
+		imageline($im, 20, 18, 170, 50, $white);
+		imageline($im, 25, 50, 80, 50, $white);
+		
+		$intNoiseCount = 30; // 噪点数量	
+		$intLineCount = 5; // 干扰线数量
+		
+		// 颜色的定义
+		$noise_color = imagecolorallocate($im, 0x00, 0x00, 0x00); // 噪点颜色
+// 		$line_color = imagecolorallocate($im, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)); // 干扰线颜色
+		$line_color = imagecolorallocate($im, 0, 0, 0); // 干扰线颜色
+		
+		// 绘制噪点
+		for ($i=0; $i<$intNoiseCount; $i++) {
+			imagesetpixel($im, mt_rand(0, $this->intImgwidth), mt_rand(0, $this->intImgHeight), $noise_color);
+		}
+		
+		// 绘制干扰线
+		for ($i=0; $i<$intLineCount; $i++) {
+			imageline($im, mt_rand(0, $this->intImgwidth), mt_rand(0, $this->intImgHeight), mt_rand(0, $this->intImgwidth), mt_rand(0, $this->intImgHeight), $line_color);
+		}
+		
+		//文字起始X坐标
+		$intTextStartX = $intFontSize/28;
+		
+		//文字间距差值, 小间距：1.7-2.5, 大间距0.9-2.0
+		$intTextDiff1 = $intFontSize/0.9;
+		$intTextDiff2 = $intFontSize/2.0;
+		
+		//旋转角度基础值
+		$intAngleBase = rand(-30, 30);
+
+		//文字随机颜色，用于每个文字的随机变化
+		$args_fontColourList = $this->args_colourList;
+		$args_fontColour = array();
+		$intKey = rand(0, count($args_fontColourList)-1);
+		$args_fontColour = array_splice($args_fontColourList, $intKey, 1);
+
+		// 绘制验证码
+		for ($i=0; $i<$intLength; $i++) {
+			$intAngle = rand($intAngleBase-20, $intAngleBase+20); // 旋转角度，每个字体角度随机
+			$intFont = rand($intFontSize-3, $intFontSize+3); // 随机字体大小
+			
+			//文字X坐标
+			if($i == 0){
+				$intTextStartX = $intFontSize/2.5;
+			}else{
+				$intTextStartX += rand($intTextDiff1, $intTextDiff2);
+			}
+			
+			//文字外框
+			// 字体颜色（外框）
+			$font_color = imagecolorallocate($im, $args_fontColour[0][0], $args_fontColour[0][1], $args_fontColour[0][2]); 
+			
+			//文字Y坐标
+			$intTextStartY = rand($this->intImgHeight/2+$this->intImgHeight/10, $this->intImgHeight/2+$this->intImgHeight/9);
+			imagettftext($im, $intFont, $intAngle,
+					$intTextStartX,
+					$intTextStartY,
+					$font_color, $this->strFontName, $this->args_char[$i]);
+			
+			
+			//文字内部
+			// 字体颜色（内部）
+			$intKey = rand(0, count($args_fontColourList)-1);
+			$args_fontColour = array_splice($args_fontColourList, $intKey, 1);
+			$font_color2 = imagecolorallocate($im, $args_fontColour[0][0], $args_fontColour[0][1], $args_fontColour[0][2]); 
+			
+			$strFontName2 = '../media/fonts/BRLNSR.TTF'; //BRLNSR.TTF, arial.ttf
+			imagettftext($im, $intFont-6, $intAngle,
+					$intTextStartX+2,
+					$intTextStartY-2,
+					$font_color2, $strFontName2, $this->args_char[$i]);
+		}
+		
+		//扭曲图像
+		//横向扭曲
+		$distortion_im = imagecreatetruecolor ( $this->intImgwidth, $this->intImgHeight );
+		imagefill ( $distortion_im, 0, 0, $buttum_c );
+		for($i = 0; $i < $this->intImgwidth; $i ++) {
+			for($j = 0; $j < $this->intImgHeight; $j ++) {
+				$rgb = imagecolorat ( $im, $i, $j );
+				//if (( int ) ($i + 20 + sin ( $j / $this->intImgHeight * 2 * M_PI ) * 10) <= imagesx ( $distortion_im ) && ( int ) ($i + 20 + sin ( $j / $this->intImgHeight * 2 * M_PI ) * 10) >= 0) {
+					imagesetpixel ( $distortion_im, 
+							( int ) ($i + sin ( $j / $this->intImgHeight * 2 * M_PI - M_PI * 0.5 ) * 5), //横坐标位移
+							$j, //纵坐标位移
+							$rgb );
+				//}
+			}
+		}
+		
+		//纵向扭曲
+		$distortion_im2 = imagecreatetruecolor ( $this->intImgwidth, $this->intImgHeight );
+		imagefill ( $distortion_im2, 0, 0, $buttum_c );
+		for($i = 0; $i < $this->intImgwidth; $i ++) {
+			for($j = 0; $j < $this->intImgHeight; $j ++) {
+				$rgb = imagecolorat ( $distortion_im, $i, $j );
+				
+				$intBendXStart = $this->intImgwidth/3;//纵向扭曲的起始坐标
+				if($i > $intBendXStart){
+					imagesetpixel ( $distortion_im2,
+							$i, //横坐标位移
+							( int ) ($j + sin ( $i / ($this->intImgwidth + $intBendXStart) * 2 * M_PI - M_PI * 0.5 ) * 12), //纵坐标位移
+							$rgb );
+				}else{
+					imagesetpixel ( $distortion_im2,
+							$i, //横坐标位移
+							$j,
+							$rgb );
+				}
+
+			}
+		}
+		
+		// 绘制边框
+		imagerectangle($distortion_im2, 0, 0, $this->intImgwidth - 1, $this->intImgHeight - 1, $font_color);
+
+		Header("Content-type: image/PNG");
+		ImagePNG($distortion_im2);
+		//ImagePNG($im);
+		ImageDestroy($distortion_im2);
+		ImageDestroy($im);
+	}
+}
