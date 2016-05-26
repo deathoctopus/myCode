@@ -127,3 +127,35 @@ function checkPrice($str){
 	}
 }
 
+/**
+* 重新排序数组
+* Array ( [0] => Array ( [name] => 1.jpg [type] => image/jpeg [tmp_name] => E:\www\temp\php58B1.tmp [error] => 0 [size] => 70373 ) 
+* [1] => Array ( [name] => 2.jpg [type] => image/jpeg [tmp_name] => E:\www\temp\php58C2.tmp [error] => 0 [size] => 261630 ) ) 
+*/
+$a = array (
+  'name' =>   array (
+    0 => '1.jpg',
+    1 => '2.jpg',
+  ),
+  'type' =>   array (
+    0 => 'image/jpeg',
+    1 => 'image/jpeg',
+  ),
+  'tmp_name' =>   array (
+    0 => 'E:\\www\\temp\\php58B1.tmp',
+    1 => 'E:\\www\\temp\\php58C2.tmp',
+  ),
+  'error' =>   array (
+    0 => '0',
+    1 => '0',
+  ),
+  'size' =>   array (
+    0 => '70373',
+    1 => '261630',
+  ),
+);
+ 
+$k = array_keys($a);
+$r = call_user_func_array('array_map', array_merge(array(null), $a));
+$r = array_map('array_combine', array_fill(0, count($r), $k), $r);
+print_r($r);
