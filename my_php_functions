@@ -159,3 +159,5 @@ $k = array_keys($a);
 $r = call_user_func_array('array_map', array_merge(array(null), $a));
 $r = array_map('array_combine', array_fill(0, count($r), $k), $r);
 print_r($r);
+
+echo 'test';
